@@ -1,0 +1,45 @@
+trigger:
+- main
+
+stages:
+- stage: BuildandPublish
+  jobs:
+  - job: build
+    pool: 
+      vmimage: 'ubuntu-latest'
+    steps:
+    - task: Npm@1
+      inputs:
+        command: 'install'
+    - task: Npm@1
+      inputs:
+        command:  'custom'
+        customCommand: 'run ng build --watch'
+        
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: 'dist'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+
+- stage: Deploy 
+  jobs:
+  - job: Deploy
+    pool: 
+      vmimage: 'ubuntu-latest'
+    steps:
+    - task: DownloadBuildArtifacts@1
+      inputs:
+        buildType: 'current'
+        downloadType: 'single'
+        artifactName: 'drop'
+        downloadPath: '$(System.ArtifactsDirectory)'
+    - task: AzureRmWebAppDeployment@4
+      inputs:
+        ConnectionType: 'AzureRM'
+        azureSubscription: 'Free Trial (53c77889-c916-46ec-befe-2eabd82fae5a)'
+        appType: 'webAppLinux'
+        WebAppName: 'umeshdevops'
+        packageForLinux: '$(System.ArtifactsDirectory)/drop'
+        RuntimeStack: 'STATICSITE|1.0'
+
